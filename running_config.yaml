@@ -1,0 +1,24 @@
+system:
+  device: "auto" # "cuda", "cpu", "auto"
+  use_opponent_model: False
+
+train:
+  episodes_per_batch: 256
+  num_iterations: 200
+  mini_batch_size: 64
+  lr: 0.0003
+  gamma: 0.99
+
+ppo:
+  clip_param: 0.2
+  policy_epochs: 5
+  value_epochs: 5
+  gae_lambda: 0.95
+  entropy_coef: 0.01
+
+opponent:
+  style: "random" # "aggressive", "conservative", "random"
+  predictor_lr: 0.001
+
+wandb:
+  project: "Leduc-Holdem-PPO"
