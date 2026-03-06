@@ -1,8 +1,10 @@
 # main.py
+import pathlib
+
 import torch
 import yaml
 import wandb
-from pettingzoo.classic import leduc_holdem_v4
+from pettingzoo.classic import texas_holdem_v4
 from core.agents import PPOAgent, RuleBasedAgent
 from .utils.utils import plot_results, moving_average
 from core.environments import Runner
@@ -26,11 +28,13 @@ def main():
     run_name = f"{mode_tag}_{model_tag}_lr{cfg['train']['lr']}"
     group_name = "Self-Play-Exploration" if sp_enabled else "Baseline-Tests"
 
+    agent_cfg = cfg.get('model', {}).get('agent', {'hidden_layers': [256, 256], 'use_layer_norm': True})
+
     wandb.init(
         project=cfg['wandb']['project'],
         name=run_name,
         group=group_name,
-        tags=["Leduc", mode_tag, model_tag],
+        tags=["Texas-Holdem", mode_tag, model_tag],
         config=cfg,
     )
 
@@ -40,12 +44,12 @@ def main():
         device = cfg['system']['device']
     print(f"Using device: {device}")
 
-    env = leduc_holdem_v4.env()
+    env = texas_holdem_v4.env()
     env.reset()
 
     first_obs, _, _, _, _ = env.last()
-    # Leduc official specs:
-    # Observation shape = (36,)
+    # Texas holdem official specs:
+    # Observation shape = (72,)
     # Actions = {0: Call, 1: Raise, 2: Fold, 3: Check}
     raw_obs_dim = len(first_obs["observation"])
     action_dim = 4
@@ -55,8 +59,18 @@ def main():
     agent_obs_dim = raw_obs_dim + action_dim
 
     # Instantiate agents and models
-    policy_net = PolicyNet(input_dim=agent_obs_dim, output_dim=action_dim)
-    value_net = ValueNet(input_dim=agent_obs_dim)
+    policy_net = PolicyNet(
+        input_dim=agent_obs_dim, 
+        output_dim=action_dim, 
+        hidden_layers=agent_cfg['hidden_layers'],
+        use_layer_norm=agent_cfg['use_layer_norm']
+    )
+    
+    value_net = ValueNet(
+        input_dim=agent_obs_dim,
+        hidden_layers=agent_cfg['hidden_layers'],
+        use_layer_norm=agent_cfg['use_layer_norm']
+    )
     
     agent = PPOAgent(
         policy_net=policy_net,
@@ -74,11 +88,15 @@ def main():
 
     # set up opponent model based on config
     if use_opp:
+        opp_cfg = cfg['model']['opponent_predictor']
+        
         opp_predictor = OpponentPredictor(
             obs_dim=raw_obs_dim, 
             act_dim=action_dim,
             device=device,
-            lr=cfg['opponent']['predictor_lr']
+            lr=cfg['opponent']['predictor_lr'],
+            hidden_layers=opp_cfg['hidden_layers'],
+            use_layer_norm=opp_cfg['use_layer_norm']
         )
     else:
         opp_predictor = None
@@ -86,8 +104,17 @@ def main():
 
     # set up opponent agent based on config
     if sp_enabled:
-        mirror_policy = PolicyNet(agent_obs_dim, action_dim)
-        mirror_value = ValueNet(agent_obs_dim)
+        mirror_policy = PolicyNet(
+            input_dim=agent_obs_dim, 
+            output_dim=action_dim, 
+            hidden_layers=agent_cfg['hidden_layers'],
+            use_layer_norm=agent_cfg['use_layer_norm']
+        )
+        mirror_value = ValueNet(
+            input_dim=agent_obs_dim,
+            hidden_layers=agent_cfg['hidden_layers'],
+            use_layer_norm=agent_cfg['use_layer_norm']
+        )
         opponent_agent = PPOAgent(
             policy_net=mirror_policy,
             value_net=mirror_value,
@@ -150,7 +177,14 @@ def main():
             print(f"Iteration {iteration}: Avg Reward = {avg_reward:.3f}, Win Rate = {win_rate:.3f}, Opp Loss = {opp_loss:.4f}, Opp Acc = {opp_acc:.3f}")
 
     wandb.finish()
-    print("Training completed.")
+
+    save_dir = cfg['save'].get('save_dir', 'models/')
+    pathlib.Path(save_dir).mkdir(parents=True, exist_ok=True)
+    model_filename = f"{run_name}_final.pth"
+    full_save_path = pathlib.Path(save_dir) / model_filename
+    torch.save(agent.policy.state_dict(), full_save_path)
+    
+    print(f"Training completed. Model saved to: {full_save_path}")
     env.close()
 
     # Plot results

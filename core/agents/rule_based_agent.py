@@ -11,8 +11,8 @@ class RuleBasedAgent:
         """
         self.style = style
         self.device = device
-        
-        # Leduc Hold'em action mapping
+
+        # Texas Hold'em action mapping
         self.ACTION_CALL = 0
         self.ACTION_RAISE = 1
         self.ACTION_FOLD = 2

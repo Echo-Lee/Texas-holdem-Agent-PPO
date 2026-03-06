@@ -3,29 +3,20 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Categorical
+from core.networks.policy_value_network import FlexibleNet
 
 
-class OpponentModel(nn.Module):
-    def __init__(self, input_dim, output_dim, hidden_dim=64):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, output_dim) # logits for opponent action prediction
-        )
-
-    def forward(self, x):
-        return self.net(x)
+class OpponentModel(FlexibleNet):
+    def __init__(self, input_dim, output_dim, **kwargs):
+        super().__init__(input_dim, output_dim, **kwargs)
 
 class OpponentPredictor:
     """Train a simple supervised model to predict opponent's next action."""
-    def __init__(self, obs_dim, act_dim, device=None, lr=1e-3):
-        self.model = OpponentModel(obs_dim, act_dim).to(device)
+    def __init__(self, obs_dim, act_dim, device=None, lr=1e-3, **model_kwargs):
+        self.device = device
+        self.model = OpponentModel(obs_dim, act_dim, **model_kwargs).to(device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
         self.loss_fn = nn.CrossEntropyLoss()
-        self.device = device
 
     def train_step(self, state, action):
         """

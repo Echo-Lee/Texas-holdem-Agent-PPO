@@ -90,11 +90,11 @@ class Runner:
                 
                 if self.opp_agent is not None:
                     if self.self_play_mode:
-                        # Self-play: feed in 40 dim obs but padding
+                        # Self-play: feed in 76 dim obs with zero padding (blind to opponent model)
                         opp_state = self._get_processed_obs(raw_obs, blind=True)
                         action_tensor, _ = self.opp_agent.get_action(opp_state, obs["action_mask"])
                     else:
-                        # Rule-based opponent: feed in the raw 36 dim obs without opponent model prediction
+                        # Rule-based opponent: feed in the raw 72 dim obs without opponent model prediction
                         action_tensor, _ = self.opp_agent.get_action(obs["observation"], obs["action_mask"])
                     action = action_tensor.item()
                 else:

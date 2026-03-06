@@ -1,0 +1,7 @@
+# Minimal requirements for Vercel deployment
+# Note: torch is very large (~700MB). Consider using torch-cpu or ONNX for production
+gradio==5.16.0
+numpy==2.4.2
+pettingzoo==1.25.0
+PyYAML==6.0.3
+torch==2.10.0

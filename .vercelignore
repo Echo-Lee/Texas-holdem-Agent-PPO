@@ -1,0 +1,20 @@
+# Vercel ignore file - exclude unnecessary files from deployment
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.gitignore
+wandb/
+results/
+models/*.pth
+!models/SP-U20_w-OppM_lr0.0003_final.pth
+*.md
+!README.md
+.env
+.DS_Store
+*.log
+code.zip
+.claude/
