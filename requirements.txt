@@ -3,6 +3,7 @@ numpy==2.2.1
 pettingzoo==1.24.3
 rlcard==1.2.0
 gymnasium==1.0.0
+gradio==4.44.1
 PyYAML==6.0.2
 pygame==2.6.1
 wandb==0.18.7
