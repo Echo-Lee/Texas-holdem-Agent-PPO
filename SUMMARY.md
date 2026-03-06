@@ -27,45 +27,67 @@
 
 ---
 
-## Vercel Deployment Setup 🚀
+## Dark Casino Theme UI 🎰
 
-Created a complete deployment infrastructure for your poker agent:
+Created a beautiful dark casino-themed interface with:
+- **Professional poker aesthetic** - Green felt table, gold accents
+- **Glassmorphism effects** - Modern translucent panels
+- **Animated interactions** - Smooth hover effects and transitions
+- **Responsive card displays** - Clean, large card images with shadows
+- **Status indicators** - Color-coded chips, actions, and game states
+- **Action history** - Full game log with emoji indicators
 
-### Files Created
+## Hugging Face Spaces Deployment 🚀
 
-1. **[app.py](app.py)** - Standalone Gradio application
-   - Simplified version of play_game.py
-   - Serverless-friendly with lazy model loading
-   - Environment variable support for configuration
-   - Relative paths for card images
+Streamlined deployment for Hugging Face Spaces (removed Vercel files):
 
-2. **[api/index.py](api/index.py)** - Vercel serverless function entry point
-   - Wraps the Gradio app for Vercel
-   - Handles serverless function requirements
+### Files Created/Updated
 
-3. **[vercel.json](vercel.json)** - Vercel configuration
-   - Defines build settings
-   - Routes all traffic to the API endpoint
-   - Environment variables configuration
+1. **[app.py](app.py)** - Dark casino-themed Gradio application ⭐
+   - Professional poker table interface
+   - Custom CSS with green felt aesthetic and gold accents
+   - Animated buttons and hover effects
+   - Emoji-enhanced action indicators
+   - Glassmorphism design elements
+   - Responsive card galleries with shadows
 
-4. **[.vercelignore](.vercelignore)** - Deployment exclusions
-   - Excludes unnecessary files from deployment
-   - Keeps deployment size minimal
-   - Includes only essential model file
+2. **[HF_README.md](HF_README.md)** - Hugging Face Space description
+   - Markdown with YAML front matter for HF
+   - Project overview and features
+   - Links to GitHub repository
+   - Instructions for players
 
-5. **[requirements-vercel.txt](requirements-vercel.txt)** - Minimal dependencies
-   - Lightweight requirements for deployment
-   - Note: PyTorch is still ~700MB (see alternatives below)
+3. **[.gitattributes](.gitattributes)** - Git LFS configuration
+   - Tracks large files (.pth, .png)
+   - Required for Hugging Face Spaces deployment
 
-6. **[DEPLOYMENT.md](DEPLOYMENT.md)** - Comprehensive deployment guide
-   - Detailed instructions for multiple platforms
-   - Size optimization strategies
-   - Troubleshooting tips
+4. **[deploy_to_hf.sh](deploy_to_hf.sh)** - Automated deployment script
+   - One-command deployment to HF Spaces
+   - Handles file copying and Git operations
+   - Checks for required files
+
+5. **[requirements.txt](requirements.txt)** - Clean dependencies
+   - Updated for Hugging Face Spaces
+   - Removed corrupted formatting
+   - Essential packages only
+
+6. **[DEPLOYMENT.md](DEPLOYMENT.md)** - Updated deployment guide
+   - Focus on Hugging Face Spaces (recommended)
+   - Step-by-step deployment instructions
+   - Git LFS setup guide
+   - Removed Vercel-specific content
 
 7. **[convert_to_onnx.py](convert_to_onnx.py)** - Model conversion utility
    - Converts PyTorch model to ONNX format
-   - Reduces model runtime size from ~700MB to ~10MB
+   - Useful for size optimization
    - Includes testing functionality
+
+### Files Removed
+
+- ❌ `vercel.json` - Vercel configuration (not needed)
+- ❌ `.vercelignore` - Vercel exclusions (not needed)
+- ❌ `requirements-vercel.txt` - Vercel dependencies (not needed)
+- ❌ `api/index.py` - Vercel serverless functions (not needed)
 
 ### Important: Size Constraints ⚠️
 
@@ -140,30 +162,48 @@ d:\RL Project/
 python app.py
 ```
 
-### For Deployment
+### For Deployment to Hugging Face Spaces
 
-**Hugging Face Spaces (Recommended)**:
-1. Create account at https://huggingface.co
-2. Create new Space (Gradio SDK)
-3. Upload: app.py, core/, running_config.yaml, model, card images
-4. Your app goes live automatically
-
-**ONNX Conversion** (if you want smaller size):
+**Method 1: Automated Script** (Easiest):
 ```bash
-# Install ONNX tools
-pip install onnx onnxruntime
+# Make script executable
+chmod +x deploy_to_hf.sh
 
-# Convert model
-python convert_to_onnx.py --model models/SP-U20_w-OppM_lr0.0003_final.pth --test
-
-# Update app.py to use ONNX Runtime (see DEPLOYMENT.md for code)
+# Deploy (replace with your HF username and desired space name)
+./deploy_to_hf.sh YOUR_USERNAME texas-holdem-ppo
 ```
 
-**Vercel** (if you optimize size):
+**Method 2: Manual Deployment**:
+1. Create account at https://huggingface.co
+2. Create new Space (Gradio SDK): https://huggingface.co/new-space
+3. Clone your Space:
+   ```bash
+   git clone https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE
+   cd YOUR_SPACE
+   ```
+4. Copy files:
+   ```bash
+   cp ../HF_README.md README.md
+   cp ../app.py .
+   cp -r ../core ../running_config.yaml ../models ../poker_cards ../requirements.txt .
+   ```
+5. Setup Git LFS and push:
+   ```bash
+   git lfs install
+   cp ../.gitattributes .
+   git add .
+   git commit -m "Deploy dark casino theme"
+   git push
+   ```
+
+Your Space will be live at: `https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE`
+
+**Test Locally First**:
 ```bash
-npm i -g vercel
-vercel login
-vercel
+# Test the dark casino theme locally
+python app.py
+
+# Visit http://localhost:7860
 ```
 
 ---

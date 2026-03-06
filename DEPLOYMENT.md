@@ -1,41 +1,82 @@
-# Deployment Guide for Vercel
+# Deployment Guide
 
-## ⚠️ Important Constraints
+## 🏆 Hugging Face Spaces (Recommended & Easiest)
 
-Vercel has strict deployment limits:
-- **50MB** deployment size limit (zipped)
-- **250MB** unzipped size limit
-- **Serverless functions** are stateless
+Hugging Face Spaces is purpose-built for ML apps with large dependencies. This is now the primary deployment method for this project.
 
-**PyTorch is ~700MB**, which exceeds Vercel's limits. You have several options:
+### Why Hugging Face Spaces?
+- ✅ **No size limits** - PyTorch is fine!
+- ✅ **Free hosting** - No credit card required
+- ✅ **Built-in Gradio support** - Zero configuration
+- ✅ **Automatic deployment** - Git push and go live
+- ✅ **Custom domains** available
 
-## Option 1: Use Hugging Face Spaces (Recommended)
+## Quick Deployment to Hugging Face Spaces
 
-Hugging Face Spaces is better suited for ML apps with large dependencies.
+### Step 1: Create Your Space
+
+1. Go to https://huggingface.co/new-space
+2. Choose a name (e.g., "texas-holdem-ppo-agent")
+3. Select **"Gradio"** as the SDK
+4. Choose **"Public"** (free) or **"Private"**
+5. Click **"Create Space"**
+
+### Step 2: Prepare Your Files
+
+Make sure you have:
+- ✅ `app.py` (dark casino themed UI)
+- ✅ `core/` directory (all Python modules)
+- ✅ `running_config.yaml` (configuration)
+- ✅ `models/SP-U20_w-OppM_lr0.0003_final.pth` (your trained model)
+- ✅ `poker_cards/` directory (card images)
+- ✅ `requirements.txt` (dependencies)
+- ✅ `HF_README.md` (Space description)
+
+### Step 3: Deploy via Git
 
 ```bash
-# Install Hugging Face CLI
-pip install huggingface_hub
+# Clone your new Space
+git clone https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
+cd YOUR_SPACE_NAME
 
-# Login to Hugging Face
-huggingface-cli login
+# Copy README for Space
+cp ../HF_README.md README.md
 
-# Create a new Space
-# Then copy app.py, core/, running_config.yaml, and your model to the Space
+# Copy your files
+cp -r ../app.py ../core ../running_config.yaml ../models ../poker_cards ../requirements.txt .
+
+# Commit and push
+git add .
+git commit -m "Initial deployment with dark casino theme"
+git push
 ```
 
-Create a `README.md` in your Space:
-```yaml
----
-title: Texas Holdem PPO Agent
-emoji: 🃏
-colorFrom: blue
-colorTo: red
-sdk: gradio
-sdk_version: 5.16.0
-app_file: app.py
-pinned: false
----
+### Step 4: Wait for Build
+
+Your Space will automatically:
+1. Install dependencies
+2. Load your model
+3. Launch the Gradio interface
+4. Be live at: `https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME`
+
+Usually takes 2-5 minutes!
+
+### Step 5: (Optional) Use Git LFS for Large Files
+
+If your model is very large (>10MB), use Git LFS:
+
+```bash
+# Install Git LFS
+git lfs install
+
+# Track large files
+git lfs track "*.pth"
+git lfs track "*.png"
+
+# Add and commit
+git add .gitattributes
+git commit -m "Track large files with LFS"
+git push
 ```
 
 ## Option 2: Convert Model to ONNX (Smaller)
