@@ -2,6 +2,8 @@
 
 Reinforcement Learning project implementing **PPO (Proximal Policy Optimization)** for heads-up Texas Hold'em poker using PettingZoo. Features opponent modeling, self-play training, and a Gradio UI for playing against the trained agent.
 
+Play the cards on this URL: https://huggingface.co/spaces/ChenyuEcho/texas-holdem-ppo
+
 ## 🎯 Features
 
 ### Training & AI
