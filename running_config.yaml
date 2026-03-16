@@ -1,0 +1,102 @@
+system:
+  device: "auto"
+  use_opponent_model: false
+
+train:
+  episodes_per_batch: 64
+  num_iterations: 20
+  mini_batch_size: 64
+  lr: 0.0003
+  gamma: 0.99
+  seed: 7
+
+model:
+  agent:
+    hidden_layers: [256, 256, 128]
+    use_layer_norm: true
+    card_encoder_channels: [16, 32]
+    card_embedding_dim: 128
+  opponent_predictor:
+    hidden_layers: [128, 128]
+    use_layer_norm: false
+
+ppo:
+  clip_param: 0.2
+  policy_epochs: 5
+  value_epochs: 5
+  gae_lambda: 0.95
+  entropy_coef: 0.01
+
+opponent:
+  style: "random"
+  predictor_lr: 0.001
+
+stages:
+  stage1:
+    num_agents: 2
+    iterations: 20
+    episodes_per_batch: 64
+    opponent_style: "random"
+    replay_seed_batches: 8
+  stage2:
+    iterations: 80
+    episodes_per_batch: 256
+    mini_batch_size: 128
+    lr: 0.00005
+    learning_source: "stage1_agent_1"
+    opponent_source: "stage1_agent_2"
+    seed_offset: 1000
+    replay_seed_batches: 4
+    replay:
+      stage1_batches_per_update: 1
+      stage2_batches_per_update: 1
+      max_prev_stage_batches: 8
+      max_current_stage_batches: 4
+      replay_every: 4
+      replay_start_iteration: 8
+  stage3:
+    iterations: 60
+    episodes_per_batch: 256
+    mini_batch_size: 128
+    lr: 0.00003
+    learning_source: "stage2"
+    opponent_source: "stage1_agent_2"
+    seed_offset: 2000
+    replay_seed_batches: 4
+    replay:
+      stage1_batches_per_update: 1
+      stage2_batches_per_update: 1
+      max_prev_stage_batches: 4
+      max_current_stage_batches: 4
+      replay_every: 4
+      replay_start_iteration: 8
+
+wandb:
+  enabled: false
+  mode: "offline"
+  project: "Texas-Holdem-PPO-selfplay"
+
+results:
+  dir: "results"
+  smoothing_window: 5
+
+save:
+  save_dir: "models"
+  stage2_model_name: "stage2_final_policy.pt"
+  stage3_model_name: "stage3_final_policy.pt"
+
+random_search:
+  trials_per_stage: 10
+  score_weights:
+    reward: 1.0
+    win_rate: 4.0
+  search_train_overrides:
+    stage1:
+      iterations: 8
+      episodes_per_batch: 32
+    stage2:
+      iterations: 10
+      episodes_per_batch: 64
+    stage3:
+      iterations: 10
+      episodes_per_batch: 64
