@@ -5,5 +5,5 @@ rlcard==1.2.0
 gymnasium==1.0.0
 PyYAML==6.0.2
 pygame==2.6.1
-gradio==5.9.1
+gradio==4.44.1
 pillow==11.0.0
