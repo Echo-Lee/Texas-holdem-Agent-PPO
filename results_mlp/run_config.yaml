@@ -1,8 +1,7 @@
 system:
-  device: "auto"
+  device: auto
   use_opponent_model: false
-  model_type: "cnn"  # "cnn" or "mlp"
-
+  model_type: mlp
 train:
   episodes_per_batch: 64
   num_iterations: 20
@@ -10,45 +9,49 @@ train:
   lr: 0.0003
   gamma: 0.99
   seed: 7
-
 model:
   agent:
-    # CNN-specific settings
-    hidden_layers: [256, 256, 128]
+    hidden_layers:
+    - 256
+    - 256
+    - 128
     use_layer_norm: true
-    card_encoder_channels: [16, 32]
+    card_encoder_channels:
+    - 16
+    - 32
     card_embedding_dim: 128
-    # MLP-specific settings (comparable params: ~350k vs CNN ~357k)
-    mlp_hidden_layers: [512, 400, 256]
+    mlp_hidden_layers:
+    - 256
+    - 256
+    - 128
   opponent_predictor:
-    hidden_layers: [128, 128]
+    hidden_layers:
+    - 128
+    - 128
     use_layer_norm: false
-
 ppo:
   clip_param: 0.2
   policy_epochs: 5
   value_epochs: 5
   gae_lambda: 0.95
   entropy_coef: 0.01
-
 opponent:
-  style: "random"
+  style: random
   predictor_lr: 0.001
-
 stages:
   stage1:
     num_agents: 2
     iterations: 20
     episodes_per_batch: 64
-    opponent_style: "random"
+    opponent_style: random
     replay_seed_batches: 8
   stage2:
     iterations: 80
     episodes_per_batch: 256
     mini_batch_size: 128
-    lr: 0.00005
-    learning_source: "stage1_agent_1"
-    opponent_source: "stage1_agent_2"
+    lr: 5.0e-05
+    learning_source: stage1_agent_1
+    opponent_source: stage1_agent_2
     seed_offset: 1000
     replay_seed_batches: 4
     replay:
@@ -62,9 +65,9 @@ stages:
     iterations: 60
     episodes_per_batch: 256
     mini_batch_size: 128
-    lr: 0.00003
-    learning_source: "stage2"
-    opponent_source: "stage1_agent_2"
+    lr: 3.0e-05
+    learning_source: stage2
+    opponent_source: stage1_agent_2
     seed_offset: 2000
     replay_seed_batches: 4
     replay:
@@ -74,22 +77,18 @@ stages:
       max_current_stage_batches: 4
       replay_every: 4
       replay_start_iteration: 8
-
 wandb:
   enabled: false
-  mode: "offline"
-  project: "Texas-Holdem-PPO-selfplay"
-
+  mode: offline
+  project: Texas-Holdem-PPO-selfplay
 results:
-  dir: "results"
+  dir: results_mlp
   smoothing_window: 5
-
 save:
-  save_dir: "models"
-  stage1_model_name: "stage1_final_policy.pt"  # will be appended with agent index
-  stage2_model_name: "stage2_final_policy.pt"
-  stage3_model_name: "stage3_final_policy.pt"
-
+  save_dir: models
+  stage1_model_name: stage1_final_policy.pt
+  stage2_model_name: stage2_final_policy.pt
+  stage3_model_name: stage3_final_policy.pt
 random_search:
   trials_per_stage: 10
   score_weights:

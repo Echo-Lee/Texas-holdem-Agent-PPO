@@ -1,0 +1,45 @@
+{
+  "device": "cpu",
+  "raw_obs_dim": 72,
+  "agent_obs_dim": 76,
+  "stage1": [
+    {
+      "stage_name": "stage1_agent_1",
+      "iterations": 20,
+      "episodes_per_batch": 64,
+      "final_avg_reward": 2.669453829468749,
+      "best_avg_reward": 3.31867004358853,
+      "final_win_rate": 0.9375,
+      "checkpoint_path": "results_mlp\\stage1_agent_1\\agent_checkpoint.pt"
+    },
+    {
+      "stage_name": "stage1_agent_2",
+      "iterations": 20,
+      "episodes_per_batch": 64,
+      "final_avg_reward": 2.421126385440843,
+      "best_avg_reward": 3.202834938483219,
+      "final_win_rate": 0.8984375,
+      "checkpoint_path": "results_mlp\\stage1_agent_2\\agent_checkpoint.pt"
+    }
+  ],
+  "stage2": {
+    "stage_name": "stage2",
+    "iterations": 80,
+    "episodes_per_batch": 256,
+    "final_avg_reward": -1.1568589205193054,
+    "best_avg_reward": 2.768442210985994,
+    "final_win_rate": 0.490234375,
+    "checkpoint_path": "results_mlp\\stage2\\agent_checkpoint.pt"
+  },
+  "stage2_final_model_path": "models\\stage2_final_policy_mlp.pt",
+  "stage3": {
+    "stage_name": "stage3",
+    "iterations": 60,
+    "episodes_per_batch": 256,
+    "final_avg_reward": 0.8051771423810102,
+    "best_avg_reward": 1.850017677767855,
+    "final_win_rate": 0.54296875,
+    "checkpoint_path": "results_mlp\\stage3\\agent_checkpoint.pt"
+  },
+  "stage3_final_model_path": "models\\stage3_final_policy_mlp.pt"
+}

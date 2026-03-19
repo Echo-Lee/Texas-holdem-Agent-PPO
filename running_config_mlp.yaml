@@ -1,7 +1,7 @@
 system:
   device: "auto"
   use_opponent_model: false
-  model_type: "cnn"  # "cnn" or "mlp"
+  model_type: "mlp"  # "cnn" or "mlp"
 
 train:
   episodes_per_batch: 64
@@ -18,8 +18,8 @@ model:
     use_layer_norm: true
     card_encoder_channels: [16, 32]
     card_embedding_dim: 128
-    # MLP-specific settings (comparable params: ~350k vs CNN ~357k)
-    mlp_hidden_layers: [512, 400, 256]
+    # MLP-specific settings
+    mlp_hidden_layers: [256, 256, 128]
   opponent_predictor:
     hidden_layers: [128, 128]
     use_layer_norm: false
@@ -81,7 +81,7 @@ wandb:
   project: "Texas-Holdem-PPO-selfplay"
 
 results:
-  dir: "results"
+  dir: "results_mlp"
   smoothing_window: 5
 
 save:

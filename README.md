@@ -21,7 +21,14 @@ Play the cards on this URL: https://holdemagent.lovable.app/
 - **Card image assets** for full table rendering
 - **Hugging Face Spaces ready** deployment flow
 
-## Recent Updates (2026-03-15)
+## Recent Updates (2026-03-19)
+
+- Added **MLP baseline comparison** with configurable pure MLP architecture (no CNN encoder)
+- Implemented **agent battle system** (`scripts/agent_battle.py`) for comparing different model architectures
+- Separate training configs: `running_config.yaml` (CNN) and `running_config_mlp.yaml` (MLP)
+- Organized utility scripts into `scripts/` directory for cleaner project structure
+
+## Previous Updates (2026-03-15)
 
 - Replaced the older single-stage/self-play README flow with the current **stage1 -> stage2 -> stage3** training pipeline implemented in `core/main.py`
 - Added **`random_search.py`** for sequential stage-wise hyperparameter tuning
@@ -38,7 +45,8 @@ Play the cards on this URL: https://holdemagent.lovable.app/
 git clone <your-repo-url>
 cd Texas-holdem-Agent-CNNPPO
 
-python -m venv .venv
+# Create virtual environment
+py -m venv .venv
 
 # Windows PowerShell
 .venv\Scripts\Activate.ps1
@@ -49,10 +57,16 @@ pip install -r requirements.txt
 
 ### Training
 
-Run the default three-stage pipeline:
+Run the default three-stage pipeline (CNN):
 
 ```bash
-python core/main.py --config running_config.yaml
+python -m core.main --config running_config.yaml
+```
+
+Run with MLP architecture:
+
+```bash
+python -m core.main --config running_config_mlp.yaml
 ```
 
 Run sequential random search:
@@ -69,55 +83,58 @@ python random_search.py --config running_config.yaml --stage stage2
 
 ### Playing Against Your Agent
 
-Local Gradio UI:
-
-```bash
-python core/play_game.py
-```
-
-Deployment-ready app:
+Launch the Gradio web interface:
 
 ```bash
 python app.py
 ```
 
-By default:
-- `app.py` loads `models/stage3_final_policy.pt`
-- `core/play_game.py` still points to `models/stage2_final_policy.pt`
-- the strongest saved checkpoint in this repo is currently `models/stage3_final_policy.pt`
+**Features:**
+- Select any model from `models/` directory via dropdown
+- Real-time Pot and To Call display
+- Automatic CNN/MLP architecture detection
+- Track raise amounts in action log
+- Casino-themed dark UI
 
-To launch the app with the stage3 model in PowerShell:
+The app automatically detects the model architecture (CNN or MLP) from the filename and loads the appropriate configuration.
 
-```powershell
-$env:MODEL_PATH="models/stage3_final_policy.pt"
-python app.py
+### Agent vs Agent Battle
+
+Compare different architectures or training stages:
+
+```bash
+python scripts/agent_battle.py --agent1 models/stage3_final_policy_cnn.pt --agent2 models/stage3_final_policy_mlp.pt --games 1000
 ```
 
-For `core/play_game.py`, update the `MODEL_PATH` constant if you want the local UI to use stage3 as well.
+This will run 1000 games and report win rates and average rewards for both agents.
 
 ## Config Files
 
-`running_config.yaml` is the **source-of-truth config** for the current codebase.
+Two main configuration files:
 
-That file is used by default by:
-- `core/main.py`
-- `random_search.py`
-- `app.py`
-- `core/play_game.py`
+**`running_config.yaml`** - CNN architecture (card-aware network)
+- Model type: `cnn`
+- Uses `CardMatrixEncoder` for card features
+- Results saved to `results/`
+- Models saved as `*_cnn.pt`
+
+**`running_config_mlp.yaml`** - Pure MLP architecture
+- Model type: `mlp`
+- Direct MLP processing of all features
+- Results saved to `results_mlp/`
+- Models saved as `*_mlp.pt`
+
+Both configs are used by:
+- `core/main.py` (specify with `--config`)
+- `random_search.py` (specify with `--config`)
+- `app.py` (auto-detects from model filename)
+- `scripts/agent_battle.py` (auto-detects from model filename)
 
 The `run_config.yaml` files under `results/` are **saved run snapshots**, not the active config:
 - `results/run_config.yaml` matches the older baseline run stored in `results/`
 - `results/random_search/final/run_config.yaml` matches the tuned final run stored in `results/random_search/final/`
 
 Those snapshot files are still useful because they preserve the exact settings used for each result folder, but they are only used if you explicitly point a script to them.
-
-If you want the config to edit for future runs, edit:
-
-```text
-running_config.yaml
-```
-
-If you want the exact config that produced a saved result, open the `run_config.yaml` inside that result directory.
 
 ## Architecture
 
@@ -133,8 +150,9 @@ If you want the exact config that produced a saved result, open the `run_config.
 - `RuleBasedAgent` - aggressive, conservative, or random baseline policies
 
 **Networks** (`core/networks/`)
-- `PolicyNet` - card-aware policy network
-- `ValueNet` - card-aware value network
+- `PolicyNet` - card-aware policy network (CNN) or pure MLP
+- `ValueNet` - card-aware value network (CNN) or pure MLP
+- `FlexibleNet` - configurable MLP for baseline comparison
 - `OpponentPredictor` - optional supervised opponent action model
 
 **Environment** (`core/environments/`)
@@ -145,6 +163,11 @@ If you want the exact config that produced a saved result, open the `run_config.
 - `ReplayBatchBuffer` - stores and reuses prior training batches during stage2/stage3
 - plotting and summary helpers for CSV/JSON output
 
+**Utility scripts** (`scripts/`)
+- `agent_battle.py` - compare two trained agents head-to-head
+- `test_implementation.py` - verify CNN/MLP implementations
+- `verify_params.py` - check parameter counts for architectures
+
 ### Observation Processing
 
 Agent observation dimension: **76**
@@ -153,7 +176,11 @@ Agent observation dimension: **76**
 
 When `system.use_opponent_model: false` (the current default), those final 4 features are zero-padded.
 
-### CNN Card Encoder
+### Network Architectures
+
+The project supports two network architectures for comparison:
+
+#### CNN Architecture (Card-Aware)
 
 The policy and value networks in `core/networks/policy_value_network.py` use a dedicated **CNN card encoder** before the main MLP.
 
@@ -164,14 +191,22 @@ Card-processing flow:
 - the convolution output is flattened and projected into a dense card embedding
 - that embedding is concatenated with the remaining non-card features before the final MLP backbone
 
-Current default encoder settings:
+Current default encoder settings (in `running_config.yaml`):
 
 ```yaml
+system:
+  model_type: "cnn"
+
 model:
   agent:
     card_encoder_channels: [16, 32]
     card_embedding_dim: 128
+    hidden_layers: [256, 256, 128]
 ```
+
+**Parameter count**: ~357k parameters
+- CardMatrixEncoder: 218k (Conv + projection)
+- MLP backbone: 139k
 
 Why this helps:
 - the reshaped matrix gives the network a structured view of cards instead of treating all 52 bits as unrelated inputs
@@ -183,6 +218,32 @@ Conceptually, the encoder turns:
 ```text
 52 card bits -> 13 x 4 matrix -> conv layers -> dense card embedding -> MLP -> policy/value head
 ```
+
+#### MLP Architecture (Pure MLP Baseline)
+
+A simpler baseline using `FlexibleNet` that directly processes all 76 observation dimensions:
+
+Current default settings (in `running_config_mlp.yaml`):
+
+```yaml
+system:
+  model_type: "mlp"
+
+model:
+  agent:
+    mlp_hidden_layers: [256, 256, 128]
+    use_layer_norm: true
+```
+
+**Parameter count**: ~120k parameters
+- All layers process features directly
+- No structural bias on card relationships
+
+```text
+76 dims -> MLP layers -> policy/value head
+```
+
+This architecture serves as a baseline to evaluate whether the CNN's card-structure inductive bias actually helps for poker.
 
 ### Training Stages
 
@@ -267,13 +328,12 @@ Texas Hold'em actions:
 
 ## Configuration
 
-Main settings live in `running_config.yaml`.
-
-Current defaults include:
+### CNN Configuration (`running_config.yaml`)
 
 ```yaml
 system:
   device: "auto"
+  model_type: "cnn"
   use_opponent_model: false
 
 model:
@@ -282,6 +342,14 @@ model:
     use_layer_norm: true
     card_encoder_channels: [16, 32]
     card_embedding_dim: 128
+
+results:
+  dir: "results"
+
+save:
+  stage1_policy: "models/stage1_agent_{agent_id}_cnn_policy.pt"
+  stage2_policy: "models/stage2_final_cnn.pt"
+  stage3_policy: "models/stage3_final_cnn.pt"
 
 stages:
   stage1:
@@ -299,14 +367,38 @@ stages:
     iterations: 60
     episodes_per_batch: 256
     mini_batch_size: 128
-
-random_search:
-  trials_per_stage: 10
 ```
 
-Useful knobs:
+### MLP Configuration (`running_config_mlp.yaml`)
+
+```yaml
+system:
+  device: "auto"
+  model_type: "mlp"
+  use_opponent_model: false
+
+model:
+  agent:
+    mlp_hidden_layers: [256, 256, 128]
+    use_layer_norm: true
+
+results:
+  dir: "results_mlp"
+
+save:
+  stage1_policy: "models/stage1_agent_{agent_id}_mlp_policy.pt"
+  stage2_policy: "models/stage2_final_mlp.pt"
+  stage3_policy: "models/stage3_final_mlp.pt"
+
+# stages configuration same as CNN
+```
+
+### Useful Configuration Knobs
+
+- `system.model_type` - "cnn" or "mlp" architecture
 - `system.use_opponent_model` - enable or disable opponent prediction features
 - `model.agent.*` - policy/value architecture
+- `results.dir` - where to save training results
 - `stages.stage1.*` - seed-agent training setup
 - `stages.stage2.replay.*` - replay mix for stage2
 - `stages.stage3.replay.*` - replay mix for stage3
@@ -316,44 +408,54 @@ Useful knobs:
 
 ### Hugging Face Spaces
 
-Quick deploy:
-
-```bash
-chmod +x deploy_to_hf.sh
-./deploy_to_hf.sh YOUR_USERNAME texas-holdem-ppo
-```
-
 Manual deploy:
 1. Create a new Gradio Space on Hugging Face
-2. Copy the repository files into the Space
-3. Push the Space repo
+2. Copy `app.py`, `requirements.txt`, `poker_cards/`, `models/`, and `core/` to the Space
+3. Set the model path in the Space's environment variables if needed
+4. Push the Space repo
 
-See `DEPLOYMENT.md` for the deployment checklist.
+The app will automatically detect the model architecture (CNN or MLP) from the checkpoint filename.
 
 ## Project Structure
 
 ```text
 Texas-holdem-Agent-CNNPPO/
 |-- core/
-|   |-- agents/
-|   |-- environments/
-|   |-- networks/
-|   `-- utils/
+|   |-- agents/          # PPO, rule-based agents
+|   |-- environments/    # PettingZoo runner
+|   |-- networks/        # Policy/Value networks (CNN & MLP)
+|   |-- utils/           # Replay buffer, plotting
+|   `-- main.py          # Main training pipeline
+|
+|-- scripts/
+|   |-- agent_battle.py        # Agent comparison tool
+|   |-- test_implementation.py # Architecture tests
+|   `-- verify_params.py       # Parameter counting
+|
 |-- models/
-|   |-- stage2_final_policy.pt
-|   `-- stage3_final_policy.pt
-|-- poker_cards/
-|-- results/
-|   |-- random_search/
-|   `-- ...
-|-- app.py
-|-- core/main.py
-|-- core/play_game.py
-|-- random_search.py
-|-- running_config.yaml
+|   |-- stage2_final_policy_cnn.pt
+|   |-- stage3_final_policy_cnn.pt
+|   |-- stage2_final_policy_mlp.pt
+|   `-- stage3_final_policy_mlp.pt
+|
+|-- poker_cards/         # Card image assets
+|
+|-- results/             # CNN training results
+|   |-- stage1_agent_1/
+|   |-- stage2/
+|   `-- stage3/
+|
+|-- results_mlp/         # MLP training results
+|   |-- stage1_agent_1/
+|   |-- stage2/
+|   `-- stage3/
+|
+|-- app.py               # Deployment Gradio app
+|-- random_search.py     # Hyperparameter tuning
+|-- running_config.yaml      # CNN config
+|-- running_config_mlp.yaml  # MLP config
 |-- requirements.txt
-|-- HF_README.md
-`-- DEPLOYMENT.md
+`-- README.md
 ```
 
 ## Monitoring

@@ -15,7 +15,7 @@ except ImportError:
 
 from core.agents import PPOAgent, RuleBasedAgent
 from core.environments import Runner
-from core.networks import OpponentPredictor, PolicyNet, ValueNet
+from core.networks import OpponentPredictor, PolicyNet, ValueNet, FlexibleNet
 from core.utils.replay_buffer import ReplayBatchBuffer, clone_batch_to_cpu, merge_batches
 from core.utils.utils import plot_stage_metrics, write_metrics_csv, write_summary_json
 
@@ -74,26 +74,50 @@ def detect_env_dims():
 
 def build_agent_network_kwargs(cfg):
     agent_cfg = cfg.get("model", {}).get("agent", {})
-    return {
-        "hidden_layers": agent_cfg.get("hidden_layers", [256, 256, 128]),
-        "use_layer_norm": agent_cfg.get("use_layer_norm", True),
-        "card_encoder_channels": agent_cfg.get("card_encoder_channels", [16, 32]),
-        "card_embedding_dim": agent_cfg.get("card_embedding_dim", 128),
-    }
+    model_type = cfg.get("system", {}).get("model_type", "cnn")
+
+    if model_type == "mlp":
+        return {
+            "hidden_layers": agent_cfg.get("mlp_hidden_layers", [512, 400, 256]),
+            "use_layer_norm": agent_cfg.get("use_layer_norm", True),
+        }
+    else:  # cnn
+        return {
+            "hidden_layers": agent_cfg.get("hidden_layers", [256, 256, 128]),
+            "use_layer_norm": agent_cfg.get("use_layer_norm", True),
+            "card_encoder_channels": agent_cfg.get("card_encoder_channels", [16, 32]),
+            "card_embedding_dim": agent_cfg.get("card_embedding_dim", 128),
+        }
 
 
 def create_ppo_agent(cfg, input_dim, action_dim, device, train_params=None):
     train_params = train_params or cfg["train"]
     network_kwargs = build_agent_network_kwargs(cfg)
-    policy_net = PolicyNet(
-        input_dim=input_dim,
-        output_dim=action_dim,
-        **network_kwargs,
-    )
-    value_net = ValueNet(
-        input_dim=input_dim,
-        **network_kwargs,
-    )
+    model_type = cfg.get("system", {}).get("model_type", "cnn")
+
+    if model_type == "mlp":
+        # Use pure MLP networks
+        policy_net = FlexibleNet(
+            input_dim=input_dim,
+            output_dim=action_dim,
+            **network_kwargs,
+        )
+        value_net = FlexibleNet(
+            input_dim=input_dim,
+            output_dim=1,
+            **network_kwargs,
+        )
+    else:  # cnn
+        # Use card-aware CNN networks
+        policy_net = PolicyNet(
+            input_dim=input_dim,
+            output_dim=action_dim,
+            **network_kwargs,
+        )
+        value_net = ValueNet(
+            input_dim=input_dim,
+            **network_kwargs,
+        )
     return PPOAgent(
         policy_net=policy_net,
         value_net=value_net,
@@ -294,6 +318,17 @@ def run_stage1(cfg, raw_obs_dim, action_dim, agent_obs_dim, device, results_dir)
             output_dir=results_dir / stage_name,
             seed_batch_limit=stage1_replay_batches,
         )
+
+        # Save stage1 checkpoints to models/ directory
+        save_dir = Path(cfg.get("save", {}).get("save_dir", "models"))
+        save_dir.mkdir(parents=True, exist_ok=True)
+        model_type = cfg.get("system", {}).get("model_type", "cnn")
+        stage1_model_name = f"stage1_agent_{agent_index + 1}_{model_type}_policy.pt"
+        stage1_model_path = save_dir / stage1_model_name
+        learner.save(stage1_model_path)
+        shutil.copy2(stage1_model_path, results_dir / stage_name / stage1_model_name)
+        output["final_model_path"] = stage1_model_path
+
         outputs.append(output)
         env.close()
 
@@ -367,7 +402,10 @@ def run_finetune_stage(
 
     save_dir = Path(cfg.get("save", {}).get("save_dir", "models"))
     save_dir.mkdir(parents=True, exist_ok=True)
-    final_model_name = cfg.get("save", {}).get(f"{stage_name}_model_name", f"{stage_name}_final_policy.pt")
+    model_type = cfg.get("system", {}).get("model_type", "cnn")
+    base_model_name = cfg.get("save", {}).get(f"{stage_name}_model_name", f"{stage_name}_final_policy.pt")
+    # Insert model_type before .pt extension
+    final_model_name = base_model_name.replace(".pt", f"_{model_type}.pt")
     final_model_path = save_dir / final_model_name
     learner.save(final_model_path)
     shutil.copy2(final_model_path, results_dir / stage_name / final_model_name)
@@ -392,9 +430,10 @@ def run_training_pipeline(cfg, results_dir=None, stages_to_run=None):
     selected_stages = stages_to_run or ["stage1", "stage2", "stage3"]
 
     stage1_outputs = []
-    stage_outputs = {}
+    stage_outputs = {} # used for replay buffer
 
     if "stage1" in selected_stages:
+        # If we run stage1
         stage1_outputs = run_stage1(cfg, raw_obs_dim, action_dim, agent_obs_dim, device, results_dir)
         for output in stage1_outputs:
             stage_outputs[output["stage_name"]] = output

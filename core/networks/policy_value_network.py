@@ -46,12 +46,12 @@ class CardMatrixEncoder(nn.Module):
             conv_layers.append(nn.ReLU())
             in_channels = out_channels
 
-        self.conv = nn.Sequential(*conv_layers)
+        self.conv = nn.Sequential(*conv_layers) # out: (B, 32, 13, 4)
         self.projection = nn.Sequential(
             nn.Flatten(),
             nn.Linear(in_channels * CARD_RANKS * CARD_SUITS, embedding_dim),
             nn.ReLU(),
-        )
+        ) # out: (B, embedding_dim)
 
     def forward(self, x):
         batch_size = x.size(0)
@@ -92,7 +92,7 @@ class CardAwareNet(nn.Module):
     def forward(self, x):
         card_features = self.card_encoder(x)
         other_features = x[:, CARD_FEATURE_DIM:]
-        combined = torch.cat([card_features, other_features], dim=-1)
+        combined = torch.cat([card_features, other_features], dim=-1) # concatenate with other features
         features = self.backbone(combined)
         return self.head(features)
 

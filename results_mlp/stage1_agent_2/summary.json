@@ -1,0 +1,9 @@
+{
+  "stage_name": "stage1_agent_2",
+  "iterations": 20,
+  "episodes_per_batch": 64,
+  "final_avg_reward": 2.421126385440843,
+  "best_avg_reward": 3.202834938483219,
+  "final_win_rate": 0.8984375,
+  "checkpoint_path": "results_mlp\\stage1_agent_2\\agent_checkpoint.pt"
+}
