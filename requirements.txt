@@ -7,3 +7,4 @@ PyYAML==6.0.2
 pygame==2.6.1
 gradio==4.44.1
 pillow<11.0
+pyaudioop-lts
